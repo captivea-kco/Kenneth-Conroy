@@ -15,6 +15,7 @@ Basically, this new view `map`  will integrate Google Maps into Odoo.
 Enable you to display `res.partner` geolocation on map or any model contains geolocation.   
 This feature will work seamlessly with Odoo means you can search your partner location using Odoo search feature.     
 
+
 There are five available attributes that you can customize
  - `lat` : an attritube to tell the map the latitude field on the object __[mandatory]__
  - `lng` : an attritute to tell the map the longitude field on the object __[mandatory]__
