@@ -1,8 +1,6 @@
 Web Google Maps
 ===============   
-
 [![Demo](https://i.ytimg.com/vi/2UdG5ILDtiY/3.jpg)](https://youtu.be/5hvAubXgUnc "Demo")    
-
 
 This module contains three new features:
  - New view type and mode `map`
@@ -14,7 +12,6 @@ This module contains three new features:
 Basically, this new view `map`  will integrate Google Maps into Odoo.    
 Enable you to display `res.partner` geolocation on map or any model contains geolocation.   
 This feature will work seamlessly with Odoo means you can search your partner location using Odoo search feature.     
-
 
 There are five available attributes that you can customize
  - `lat` : an attritube to tell the map the latitude field on the object __[mandatory]__
@@ -284,7 +281,7 @@ This module will install `base_setup` and `base_geolocalize`.
 
 
 The goal of this module is to bring the power of Google Maps into Odoo    
-This module has tested on Odoo Version 11.0c    
+This module has tested on Odoo Version 12.0c    
 
 [![ko-fi](https://www.ko-fi.com/img/donate_sm.png)](https://ko-fi.com/P5P4FOM0)    
 *if you want to support me to keep this project maintained. Thanks :)*

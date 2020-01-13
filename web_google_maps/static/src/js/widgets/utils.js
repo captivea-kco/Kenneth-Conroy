@@ -53,7 +53,7 @@ odoo.define('web_google_maps.Utils', function (require) {
                 'method': 'search_read',
                 'args': [['|', ['name', '=', value], ['code', '=', value]], ['display_name', ]]
             }).then(function (record) {
-                res[field_name] = record.length == 1 ? record[0] : false;
+                res[field_name] = _.first(record) || false;
                 def.resolve(res);
             });
         } else {
@@ -79,6 +79,7 @@ odoo.define('web_google_maps.Utils', function (require) {
         }
         return def;
     }
+
 
     function gmaps_get_geolocation(place, options) {
         if (!place) return {};
@@ -150,6 +151,7 @@ odoo.define('web_google_maps.Utils', function (require) {
                 result[key] = _.filter(value).join(dlmter);
             }
         });
+
         return result;
     }
     return {

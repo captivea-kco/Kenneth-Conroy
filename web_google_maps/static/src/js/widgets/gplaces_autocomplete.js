@@ -7,18 +7,16 @@ odoo.define('web_google_maps.GplaceAutocompleteFields', function (require) {
     var _t = core._t;
 
     var GplaceAutocomplete = BasicFields.InputField.extend({
-        className: 'o_field_char o_field_google_autocomplete',
         tagName: 'span',
         supportedFieldTypes: ['char'],
         events: _.extend({}, BasicFields.InputField.prototype.events, {
-            'focus': '_geolocate'
+            'focus': '_geolocate',
         }),
         /**
          * @override
          */
         init: function () {
             this._super.apply(this, arguments);
-
             this._type_relations = ['one2many', 'many2one', 'many2many'];
             this.places_autocomplete = false;
             this.component_form = Utils.GOOGLE_PLACES_COMPONENT_FORM;
@@ -43,11 +41,17 @@ odoo.define('web_google_maps.GplaceAutocompleteFields', function (require) {
          */
         setDefault: function () {},
         /**
+         * get fields type
+         */
+        getFillFieldsType: function () {
+            return [];
+        },
+        /**
          * Prepare widget options
          */
         prepareWidgetOptions: function () {
             if (this.mode === 'edit') {
-                // update  'component_form', 'delimiter' if exists
+                // update 'fillfields', 'component_form', 'delimiter' if exists
                 if (this.attrs.options) {
                     if (this.attrs.options.hasOwnProperty('component_form')) {
                         this.component_form = _.defaults({}, this.attrs.options.component_form, this.component_form);
@@ -65,14 +69,10 @@ odoo.define('web_google_maps.GplaceAutocompleteFields', function (require) {
                         this.address_form = _.defaults({}, this.attrs.options.address_form, this.address_form);
                     }
                 }
+
                 this.target_fields = this.getFillFieldsType();
+                this.initGplacesAutocomplete()
             }
-        },
-        /**
-         * To be overriden
-         */
-        getFillFieldsType: function () {
-            return [];
         },
         /**
          * Geolocate
@@ -154,14 +154,9 @@ odoo.define('web_google_maps.GplaceAutocompleteFields', function (require) {
             });
         },
         /**
-         * @override 
+         * Initialize google autocomplete
          */
-        _renderEdit: function () {
-            this._super.apply(this, arguments);
-            if (this.isValid()) {
-                this._initGplacesAutocomplete();
-            }
-        },
+        initGplacesAutocomplete: function () {},
         /**
          * @override
          */
@@ -177,6 +172,10 @@ odoo.define('web_google_maps.GplaceAutocompleteFields', function (require) {
     });
 
     var GplaceAddressAutocompleteField = GplaceAutocomplete.extend({
+        className: 'o_field_char o_field_google_adrress_autocomplete',
+        /**
+         * @override
+         */
         setDefault: function () {
             this._super.apply(this, arguments);
             this.fillfields = {
@@ -228,24 +227,26 @@ odoo.define('web_google_maps.GplaceAutocompleteFields', function (require) {
             }
             return res;
         },
-        _initGplacesAutocomplete: function () {
-            var self = this;
+        initGplacesAutocomplete: function () {
+            var self = this,
+                place,
+                google_address, requests = [],
+                partner_geometry;
             if (!this.places_autocomplete) {
                 this.places_autocomplete = new google.maps.places.Autocomplete(this.$input.get(0), {
                     types: ['address']
                 });
             }
             // When the user selects an address from the dropdown, populate the address fields in the form.
-            this.place_listener = this.places_autocomplete.addListener('place_changed', function () {
-                var requests = [];
-                var place = this.getPlace();
+            this.place_listener = google.maps.event.addListener(this.places_autocomplete, 'place_changed', function () {
+                place = this.getPlace();
                 if (place.hasOwnProperty('address_components')) {
-                    var google_address = self._populateAddress(place);
+                    google_address = self._populateAddress(place);
                     _.each(self.target_fields, function (field) {
                         requests.push(self._prepareValue(field.relation, field.name, google_address[field.name]));
                     });
 
-                    var partner_geometry = self._setGeolocation(place.geometry.location.lat(), place.geometry.location.lng());
+                    partner_geometry = self._setGeolocation(place.geometry.location.lat(), place.geometry.location.lng());
                     _.each(partner_geometry, function (val, field) {
                         requests.push(self._prepareValue(false, field, val));
                     });
@@ -264,21 +265,21 @@ odoo.define('web_google_maps.GplaceAutocompleteFields', function (require) {
                         if (!changes[self.address_form.state_id] &&
                             changes[self.address_form.country_id].hasOwnProperty('id') &&
                             google_address[self.address_form.state_id]) {
-                                var state_id = _.find(self.target_fields, function(field) {
-                                    return field.name === self.address_form.state_id;
-                                })
-                                if (!state_id) return;
-                                self._getCountryState(
-                                    state_id.relation,
-                                    changes[self.address_form.country_id].id,
-                                    google_address[self.address_form.state_id]
-                                ).then(function (result) {
-                                    var state = {
-                                        [self.address_form.state_id]: result.length == 1 ? result[0] : false,
-                                    }
-                                    _.extend(changes, state);
-                                    self._onUpdateWidgetFields(changes);
-                                });
+                            var state_id = _.find(self.target_fields, function (field) {
+                                return field.name === self.address_form.state_id;
+                            })
+                            if (!state_id) return;
+                            self._getCountryState(
+                                state_id.relation,
+                                changes[self.address_form.country_id].id,
+                                google_address[self.address_form.state_id]
+                            ).then(function (result) {
+                                var state = {
+                                    [self.address_form.state_id]: result.length == 1 ? result[0] : false,
+                                }
+                                _.extend(changes, state);
+                                self._onUpdateWidgetFields(changes);
+                            });
                         } else {
                             self._onUpdateWidgetFields(changes);
                         }
@@ -317,6 +318,7 @@ odoo.define('web_google_maps.GplaceAutocompleteFields', function (require) {
     });
 
     var GplacesAutocompleteField = GplaceAutocomplete.extend({
+        className: 'o_field_char o_field_google_places_autocomplete',
         setDefault: function () {
             this._super.apply(this);
             this.fillfields = {
@@ -326,12 +328,12 @@ odoo.define('web_google_maps.GplaceAutocompleteFields', function (require) {
                     phone: ['international_phone_number', 'formatted_phone_number']
                 },
                 address: {
-                    [this.address_form.street]: ['street_number', 'route'],
-                    [this.address_form.street2]: ['administrative_area_level_3', 'administrative_area_level_4', 'administrative_area_level_5'],
-                    [this.address_form.city]: ['locality', 'administrative_area_level_2'],
-                    [this.address_form.zip]: 'postal_code',
-                    [this.address_form.state_id]: 'administrative_area_level_1',
-                    [this.address_form.country_id]: 'country'
+                    street: ['street_number', 'route'],
+                    street2: ['administrative_area_level_3', 'administrative_area_level_4', 'administrative_area_level_5'],
+                    city: ['locality', 'administrative_area_level_2'],
+                    zip: 'postal_code',
+                    state_id: 'administrative_area_level_1',
+                    country_id: 'country'
                 }
             };
         },
@@ -395,16 +397,17 @@ odoo.define('web_google_maps.GplaceAutocompleteFields', function (require) {
             }
             return res;
         },
-        _initGplacesAutocomplete: function () {
-            var self = this;
-            this.places_autocomplete = new google.maps.places.Autocomplete(this.$input.get(0), {
-                types: ['establishment']
-            });
+        initGplacesAutocomplete: function () {
+            var self = this,
+                place, requests = [];
+            if (!this.places_autocomplete) {
+                this.places_autocomplete = new google.maps.places.Autocomplete(this.$input.get(0), {
+                    types: ['establishment']
+                });
+            }
             // When the user selects an address from the dropdown, populate the address fields in the form.
-            this.place_listener = this.places_autocomplete.addListener('place_changed', function () {
-                var values = {},
-                    requests = [],
-                    place;
+            this.place_listener = google.maps.event.addListener(this.places_autocomplete, 'place_changed', function () {
+                var values = {};
                 place = this.getPlace();
                 if (place.hasOwnProperty('address_components')) {
                     // Get address
@@ -435,21 +438,21 @@ odoo.define('web_google_maps.GplaceAutocompleteFields', function (require) {
                         if (!changes[self.address_form.state_id] &&
                             changes[self.address_form.country_id].hasOwnProperty('id') &&
                             google_address[self.address_form.state_id]) {
-                                var state_id = _.find(self.target_fields, function(field) {
-                                    return field.name === self.address_form.state_id;
-                                })
-                                if (!state_id) return;
-                                self._getCountryState(
-                                    state_id.relation,
-                                    changes[self.address_form.country_id].id,
-                                    google_address[self.address_form.state_id]
-                                ).then(function (result) {
-                                    var state = {
-                                        [self.address_form.state_id]: result.length == 1 ? result[0] : false,
-                                    }
-                                    _.extend(changes, state);
-                                    self._onUpdateWidgetFields(changes);
-                                });
+                            var state_id = _.find(self.target_fields, function (field) {
+                                return field.name === self.address_form.state_id;
+                            })
+                            if (!state_id) return;
+                            self._getCountryState(
+                                state_id.relation,
+                                changes[self.address_form.country_id].id,
+                                google_address[self.address_form.state_id]
+                            ).then(function (result) {
+                                var state = {
+                                    [self.address_form.state_id]: result.length == 1 ? result[0] : false,
+                                }
+                                _.extend(changes, state);
+                                self._onUpdateWidgetFields(changes);
+                            });
                         } else {
                             self._onUpdateWidgetFields(changes);
                         }
@@ -482,7 +485,7 @@ odoo.define('web_google_maps.GplaceAutocompleteFields', function (require) {
         destroy: function () {
             if (this.places_autocomplete) {
                 google.maps.event.removeListener(this.place_listener);
-                google.maps.event.clearInstanceListeners(this.$input.get(0));
+                google.maps.event.clearInstanceListeners(this.places_autocomplete);
             }
             return this._super();
         }

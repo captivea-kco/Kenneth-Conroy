@@ -14,23 +14,23 @@ odoo.define('web_google_maps.MapView', function (require) {
         accesskey: 'm',
         display_name: _lt('Map'),
         icon: 'fa-map-o',
-        jsLibs: [],
         config: _.extend({}, BasicView.prototype.config, {
             Model: MapModel,
             Renderer: MapRenderer,
             Controller: MapController
         }),
         viewType: 'map',
+        mobile_friendly: true,
         init: function (viewInfo, params) {
             this._super.apply(this, arguments);
 
-            var arch = viewInfo.arch;
+            var arch = this.arch;
             var attrs = arch.attrs;
 
             var activeActions = this.controllerParams.activeActions;
             var mode = arch.attrs.editable && !params.readonly ? "edit" : "readonly";
 
-            this.loadParams.limit = this.loadParams.limit || 40;
+            this.loadParams.limit = this.loadParams.limit || 80;
             this.loadParams.openGroupByDefault = true;
             this.loadParams.type = 'list';
 
